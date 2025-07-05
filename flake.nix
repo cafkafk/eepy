@@ -15,7 +15,8 @@
             pname = "eepy";
             version = "0.1.0";
             src = ./.;
-            vendorHash = "sha256-mknBOUz8Xpqz9Jm355uVbky5jmEsRjmk84WrCQ8txyk=";
+            subPackages = [ "cmd/eepy" ];
+            vendorHash = null;
           };
         in
         {
