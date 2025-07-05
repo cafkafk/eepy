@@ -25,7 +25,7 @@ jobs:
         nix_path: nixpkgs=channel:nixos-unstable
     - uses: nix-community/cache-nix-action@v3
       with:
-        primary-key: nix-${{ runner.os }}-${{ hashFiles('**/flake.lock', 'flake.nix') }}
+        key: nix-${{ runner.os }}-${{ hashFiles('**/flake.lock', 'flake.nix') }}
         restore-keys: |
           nix-${{ runner.os }}-
     - run: nix flake check
