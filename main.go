@@ -1,10 +1,11 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/spf13/pflag"
 )
 
 const (
@@ -14,17 +15,17 @@ const (
 )
 
 func main() {
-	targetWakeTimeStr := flag.String("target-wake-time", "05:00", "Your target wake up time (HH:MM)")
-	adjustmentStr := flag.String("adjustment", "1h30m", "Adjustment per day")
-	flag.Parse()
+	targetWakeTimeStr := pflag.String("target", "05:00", "Your target wake up time (HH:MM)")
+	adjustmentStr := pflag.String("adjustment", "1h30m", "Adjustment per day")
+	pflag.Parse()
 
-	if len(flag.Args()) != 1 {
+	if len(pflag.Args()) != 1 {
 		fmt.Println("Usage: eepy [wake-time] [flags]")
-		flag.PrintDefaults()
+		pflag.PrintDefaults()
 		os.Exit(1)
 	}
 
-	wakeTimeStr := flag.Arg(0)
+	wakeTimeStr := pflag.Arg(0)
 	wakeTime, err := time.Parse(timeFormat, wakeTimeStr)
 	if err != nil {
 		fmt.Printf("Error parsing wake-time: %v\n", err)
@@ -45,6 +46,7 @@ func main() {
 
 	generatePlan(wakeTime, targetWakeTime, adjustment)
 }
+
 
 func generatePlan(wakeTime, targetWakeTime time.Time, adjustment time.Duration) {
 	if !wakeTime.After(targetWakeTime) {
