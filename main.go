@@ -47,6 +47,17 @@ func main() {
 }
 
 func generatePlan(wakeTime, targetWakeTime time.Time, adjustment time.Duration) {
+	if !wakeTime.After(targetWakeTime) {
+		bedtime := wakeTime.Add(-idealSleepDuration)
+		surplus := targetWakeTime.Sub(wakeTime)
+		fmt.Println("You are already at or ahead of your target wake time!")
+		fmt.Printf("Your bedtime for tonight is %s.\n", bedtime.Format(timeFormat))
+		if surplus > 0 {
+			fmt.Printf("You got %v extra sleep today. Nice!\n", surplus)
+		}
+		return
+	}
+
 	fmt.Println("Your sleep calibration plan:")
 	fmt.Println("-----------------------------")
 	fmt.Printf("Ideal sleep: %.1f hours. Minimum functional sleep: %.1f hours.\n", idealSleepDuration.Hours(), minSleepDuration.Hours())
