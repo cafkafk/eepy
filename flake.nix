@@ -3,15 +3,13 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+    flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-      in
-      {
+  outputs = { self, nixpkgs, flake-parts, ... }@inputs:
+    flake-parts.lib.mkFlake { inherit self inputs; } {
+      systems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+      perSystem = { pkgs, ... }: {
         packages.default = pkgs.buildGoModule {
           pname = "eepy";
           version = "0.1.0";
@@ -24,5 +22,6 @@
             pkgs.go
           ];
         };
-      });
+      };
+    };
 }
