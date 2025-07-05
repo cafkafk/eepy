@@ -14,18 +14,18 @@ const (
 )
 
 func main() {
-	wakeTimeStr := flag.String("wake-time", "", "Your wake up time for today (HH:MM)")
 	targetWakeTimeStr := flag.String("target-wake-time", "05:00", "Your target wake up time (HH:MM)")
 	adjustmentStr := flag.String("adjustment", "1h30m", "Adjustment per day")
 	flag.Parse()
 
-	if *wakeTimeStr == "" {
-		fmt.Println("Error: wake-time is required.")
-		flag.Usage()
+	if len(flag.Args()) != 1 {
+		fmt.Println("Usage: eepy [wake-time] [flags]")
+		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
-	wakeTime, err := time.Parse(timeFormat, *wakeTimeStr)
+	wakeTimeStr := flag.Arg(0)
+	wakeTime, err := time.Parse(timeFormat, wakeTimeStr)
 	if err != nil {
 		fmt.Printf("Error parsing wake-time: %v\n", err)
 		os.Exit(1)
@@ -49,36 +49,28 @@ func main() {
 func generatePlan(wakeTime, targetWakeTime time.Time, adjustment time.Duration) {
 	fmt.Println("Your sleep calibration plan:")
 	fmt.Println("-----------------------------")
+	fmt.Printf("Ideal sleep: %.1f hours. Minimum functional sleep: %.1f hours.\n", idealSleepDuration.Hours(), minSleepDuration.Hours())
+	fmt.Println("-----------------------------")
 
 	currentWakeTime := wakeTime
 	day := 1
 
-	// Loop until the current wake time is the same as or earlier than the target.
-	for currentWakeTime.After(targetWakeTime) {
+	for {
 		bedtime := currentWakeTime.Add(-idealSleepDuration)
-		if day == 1 {
-			tiredBedtime := currentWakeTime.Add(-minSleepDuration)
-			fmt.Printf("Day %d (Today):\n", day)
-			fmt.Printf("  - Wake up at %s\n", currentWakeTime.Format(timeFormat))
-			fmt.Printf("  - Go to bed at %s (for %.1f hours of sleep) or %s (for %.1f hours of sleep)\n",
-				tiredBedtime.Format(timeFormat), minSleepDuration.Hours(), bedtime.Format(timeFormat), idealSleepDuration.Hours())
-		} else {
-			fmt.Printf("Day %d:\n", day)
-			fmt.Printf("  - Wake up at %s\n", currentWakeTime.Format(timeFormat))
-			fmt.Printf("  - Go to bed at %s (for %.1f hours of sleep)\n", bedtime.Format(timeFormat), idealSleepDuration.Hours())
+		fmt.Printf("Day %d:\n", day)
+		fmt.Printf("  - Wake up at %s\n", currentWakeTime.Format(timeFormat))
+		fmt.Printf("  - Go to bed at %s\n", bedtime.Format(timeFormat))
+
+		if !currentWakeTime.After(targetWakeTime) {
+			break
 		}
 
 		currentWakeTime = currentWakeTime.Add(-adjustment)
+		if currentWakeTime.Before(targetWakeTime) {
+			currentWakeTime = targetWakeTime
+		}
 		day++
 	}
-
-	// After the loop, print the final target schedule.
-	bedtime := targetWakeTime.Add(-idealSleepDuration)
-	fmt.Printf("Day %d:\n", day)
-	fmt.Printf("  - Wake up at %s\n", targetWakeTime.Format(timeFormat))
-	fmt.Printf("  - Go to bed at %s (for %.1f hours of sleep)\n", bedtime.Format(timeFormat), idealSleepDuration.Hours())
-
-
 	fmt.Println("-----------------------------")
 	fmt.Println("You have reached your target sleep schedule!")
 }
