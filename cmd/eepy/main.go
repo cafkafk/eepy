@@ -323,6 +323,24 @@ const htmlTemplate = `
     border: 1px solid #e2e8f0;
     border-radius: 8px;
   }
+  .donut-chart-container {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    text-align: center;
+  }
+  .donut-chart-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    font-weight: bold;
+  }
+  .donut-chart-sub-label {
+    font-size: 12px;
+    color: #718096;
+  }
   table {
     width: 100%;
     border-collapse: collapse;
@@ -380,8 +398,12 @@ const htmlTemplate = `
         <span>Adjustment per Day</span>
         <span>{{.Adjustment}}</span>
       </div>
-      <div class="chart-container" style="width: 150px; height: 150px;">
+      <div class="donut-chart-container">
         <canvas id="progressDonutChart"></canvas>
+        <div class="donut-chart-label">
+          {{printf "%.0f%%" .Progress}}
+          <div class="donut-chart-sub-label">Progress</div>
+        </div>
       </div>
     </div>
     <div class="chart-grid">
