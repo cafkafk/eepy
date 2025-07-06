@@ -1,0 +1,51 @@
+# SPDX-FileCopyrightText: 2024 Christina Sørensen
+#
+# SPDX-License-Identifier: EUPL-1.2
+
+version = 1
+SPDX-PackageName = "eza"
+SPDX-PackageSupplier = "Christina Sørensen <christina@cafkafk.com>"
+
+[[annotations]]
+path = "flake.lock"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 Christina Sørensen"
+SPDX-License-Identifier = "EUPL-1.2"
+
+[[annotations]]
+path = "go.sum"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 Christina Sørensen"
+SPDX-License-Identifier = "EUPL-1.2"
+
+[[annotations]]
+path = "vendor/github.com/spf13/pflag/**"
+precedence = "override"
+SPDX-FileCopyrightText = "Copyright (c) 2012 Alex Ogier. All rights reserved."
+SPDX-License-Identifier = "BSD-3-Clause"
+
+[[annotations]]
+path = "vendor/modules.txt"
+precedence = "override"
+SPDX-FileCopyrightText = "2025 Christina Sørensen"
+SPDX-License-Identifier = "EUPL-1.2"
+
+# pre-commit-hooks.nix cause these to appear in commit check:(
+
+[[annotations]]
+path = ".cache/pre-commit/README"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 Christina Sørensen"
+SPDX-License-Identifier = "EUPL-1.2"
+
+[[annotations]]
+path = ".cache/pre-commit/db.db"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 Christina Sørensen"
+SPDX-License-Identifier = "EUPL-1.2"
+
+[[annotations]]
+path = ".gitconfig"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 Christina Sørensen"
+SPDX-License-Identifier = "EUPL-1.2"

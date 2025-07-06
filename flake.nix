@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Christina Sørensen
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 {
   description = "A Go program to calibrate your sleep schedule";
 
@@ -57,8 +61,10 @@
           packages.default = eepy;
 
           devShells.default = pkgs.mkShell {
-            buildInputs = [
-              pkgs.go
+            buildInputs = with pkgs; [
+              go
+              reuse
+              gitleaks
             ];
             inputsFrom = [ config.pre-commit.devShell ];
           };

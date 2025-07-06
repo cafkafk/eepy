@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2025 Christina Sørensen
+// SPDX-License-Identifier: EUPL-1.2
+
 module eepy
 
 go 1.24.3

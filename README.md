@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2025 Christina Sørensen
+
+SPDX-License-Identifier: EUPL-1.2
+-->
+
 # eepy
 
 `eepy` is a simple command-line tool to help you calibrate your sleep schedule.

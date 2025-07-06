@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2025 Christina Sørensen
+ *
+ * SPDX-License-Identifier: EUPL-1.2
+ */
+
 package main
 
 import (

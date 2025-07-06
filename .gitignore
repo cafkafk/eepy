@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Christina Sørensen
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 # Various Secrets... I'd tell you about them, but then I'd have to git
 # filter-repo you.
 .env
