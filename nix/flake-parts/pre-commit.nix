@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 Christina Sørensen
+#
+# SPDX-License-Identifier: EUPL-1.2
+
 _:
 
 {
@@ -16,8 +20,7 @@ _:
           nil.enable = true;
 
           reuse = {
-            # TODO: Make reuse compliant
-            enable = false;
+            enable = true;
             name = "reuse";
             entry = with pkgs; "${reuse}/bin/reuse lint";
             pass_filenames = false;
