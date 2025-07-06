@@ -7,12 +7,16 @@
 package main
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/spf13/pflag"
@@ -24,7 +28,34 @@ const (
 	timeFormat         = "15:04"
 )
 
+type Plan struct {
+	InitialWakeTime time.Time
+	TargetWakeTime  time.Time
+	Adjustment      time.Duration
+	Schedule        []time.Time
+	StartDate       time.Time
+}
+
+var (
+	configPath string
+	historyPath string
+)
+
 func main() {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		fmt.Printf("Error getting home directory: %v\n", err)
+		os.Exit(1)
+	}
+	configDir := filepath.Join(home, ".config", "eepy")
+	configPath = filepath.Join(configDir, "plan.json")
+	historyPath = filepath.Join(configDir, "history")
+
+	if err := os.MkdirAll(historyPath, 0755); err != nil {
+		fmt.Printf("Error creating history directory: %v\n", err)
+		os.Exit(1)
+	}
+
 	targetWakeTimeStr := pflag.String("target", "05:00", "Your target wake up time (HH:MM)")
 	adjustmentStr := pflag.String("adjustment", "1h30m", "Adjustment per day")
 	adb := pflag.Bool("adb", false, "Set alarm on Android device via ADB")
@@ -32,10 +63,22 @@ func main() {
 	htmlOutput := pflag.Bool("html", false, "Generate an HTML visualization of the plan")
 	pflag.Parse()
 
-	if len(pflag.Args()) != 1 {
-		fmt.Println("Usage: eepy [wake-time] [flags]")
-		pflag.PrintDefaults()
-		os.Exit(1)
+	existingPlan, err := loadPlan()
+
+	if len(pflag.Args()) == 0 {
+		if err != nil {
+			fmt.Println("No active sleep plan found. Create one by providing a wake-up time.")
+			fmt.Println("Usage: eepy [wake-time] [flags]")
+			pflag.PrintDefaults()
+			os.Exit(1)
+		}
+		displayPlan(existingPlan)
+		if *htmlOutput {
+			if err := generateHTML(existingPlan); err != nil {
+				fmt.Printf("Error generating HTML: %v\n", err)
+			}
+		}
+		os.Exit(0)
 	}
 
 	wakeTimeStr := pflag.Arg(0)
@@ -43,6 +86,20 @@ func main() {
 	if err != nil {
 		fmt.Printf("Error parsing wake-time: %v\n", err)
 		os.Exit(1)
+	}
+
+	if existingPlan != nil {
+		fmt.Print("An active sleep plan already exists. Do you want to override it? (y/N): ")
+		reader := bufio.NewReader(os.Stdin)
+		input, _ := reader.ReadString('\n')
+		if strings.ToLower(strings.TrimSpace(input)) != "y" {
+			fmt.Println("Operation cancelled.")
+			os.Exit(0)
+		}
+		if err := archivePlan(existingPlan); err != nil {
+			fmt.Printf("Error archiving existing plan: %v\n", err)
+			os.Exit(1)
+		}
 	}
 
 	targetWakeTime, err := time.Parse(timeFormat, *targetWakeTimeStr)
@@ -57,55 +114,50 @@ func main() {
 		os.Exit(1)
 	}
 
-	plan := generatePlan(wakeTime, targetWakeTime, adjustment)
+	schedule := generateSchedule(wakeTime, targetWakeTime, adjustment)
+	newPlan := &Plan{
+		InitialWakeTime: wakeTime,
+		TargetWakeTime:  targetWakeTime,
+		Adjustment:      adjustment,
+		Schedule:        schedule,
+		StartDate:       time.Now(),
+	}
+
+	if err := savePlan(newPlan); err != nil {
+		fmt.Printf("Error saving new plan: %v\n", err)
+		os.Exit(1)
+	}
+
+	displayPlan(newPlan)
 
 	if *htmlOutput {
-		err := generateHTML(plan, adjustment, wakeTime, targetWakeTime)
-		if err != nil {
+		if err := generateHTML(newPlan); err != nil {
 			fmt.Printf("Error generating HTML: %v\n", err)
-			os.Exit(1)
 		}
 	}
 
 	if *adb {
-		setAlarms(plan, *noSkipToday)
+		setAlarms(newPlan.Schedule, *noSkipToday)
 	}
 }
 
-func generatePlan(wakeTime, targetWakeTime time.Time, adjustment time.Duration) []time.Time {
-	var plan []time.Time
+func generateSchedule(wakeTime, targetWakeTime time.Time, adjustment time.Duration) []time.Time {
+	var schedule []time.Time
 	now := time.Now()
 	if !wakeTime.After(targetWakeTime) {
-		bedtime := wakeTime.Add(-idealSleepDuration)
-		surplus := targetWakeTime.Sub(wakeTime)
-		fmt.Println("You are already at or ahead of your target wake time!")
-		fmt.Printf("Your bedtime for tonight is %s.\n", bedtime.Format(timeFormat))
-		if surplus > 0 {
-			fmt.Printf("You got %v extra sleep today. Nice!\n", surplus)
-		}
 		tomorrow := now.AddDate(0, 0, 1)
 		wakeTimeWithDate := time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), wakeTime.Hour(), wakeTime.Minute(), 0, 0, now.Location())
-		plan = append(plan, wakeTimeWithDate)
-		return plan
+		schedule = append(schedule, wakeTimeWithDate)
+		return schedule
 	}
-
-	fmt.Println("Your sleep calibration plan:")
-	fmt.Println("-----------------------------")
-	fmt.Printf("Ideal sleep: %.1f hours. Minimum functional sleep: %.1f hours.\n", idealSleepDuration.Hours(), minSleepDuration.Hours())
-	fmt.Println("-----------------------------")
 
 	currentWakeTime := wakeTime
 	day := 1
 
 	for {
 		dayOfPlan := now.AddDate(0, 0, day-1)
-		bedtime := currentWakeTime.Add(-idealSleepDuration)
-		fmt.Printf("%s (Day %d):\n", dayOfPlan.Format("Mon, Jan 2"), day)
-		fmt.Printf("  - Wake up at %s\n", currentWakeTime.Format(timeFormat))
-		fmt.Printf("  - Go to bed at %s\n", bedtime.Format(timeFormat))
-
 		wakeTimeWithDate := time.Date(dayOfPlan.Year(), dayOfPlan.Month(), dayOfPlan.Day(), currentWakeTime.Hour(), currentWakeTime.Minute(), 0, 0, now.Location())
-		plan = append(plan, wakeTimeWithDate)
+		schedule = append(schedule, wakeTimeWithDate)
 
 		if !currentWakeTime.After(targetWakeTime) {
 			break
@@ -117,9 +169,25 @@ func generatePlan(wakeTime, targetWakeTime time.Time, adjustment time.Duration) 
 		}
 		day++
 	}
+	return schedule
+}
+
+func displayPlan(p *Plan) {
+	fmt.Println("Your sleep calibration plan:")
 	fmt.Println("-----------------------------")
-	fmt.Println("You have reached your target sleep schedule!")
-	return plan
+	fmt.Printf("Ideal sleep: %.1f hours. Minimum functional sleep: %.1f hours.\n", idealSleepDuration.Hours(), minSleepDuration.Hours())
+	fmt.Println("-----------------------------")
+	for i, wakeTime := range p.Schedule {
+		dayOfPlan := p.StartDate.AddDate(0, 0, i)
+		bedtime := wakeTime.Add(-idealSleepDuration)
+		fmt.Printf("%s (Day %d):\n", dayOfPlan.Format("Mon, Jan 2"), i+1)
+		fmt.Printf("  - Wake up at %s\n", wakeTime.Format(timeFormat))
+		fmt.Printf("  - Go to bed at %s\n", bedtime.Format(timeFormat))
+	}
+	fmt.Println("-----------------------------")
+	if !p.Schedule[len(p.Schedule)-1].After(p.TargetWakeTime) {
+		fmt.Println("You have reached your target sleep schedule!")
+	}
 }
 
 func setAlarms(plan []time.Time, noSkipToday bool) {
@@ -138,9 +206,6 @@ func setAlarms(plan []time.Time, noSkipToday bool) {
 		hour := wakeTime.Hour()
 		minute := wakeTime.Minute()
 		dayOfWeek := wakeTime.Weekday()
-
-		// Map time.Weekday to Android Calendar constants
-		// Sunday = 1, Monday = 2, ..., Saturday = 7
 		androidDay := int(dayOfWeek) + 1
 
 		fmt.Printf("Setting alarm for %s: %02d:%02d\n", wakeTime.Format("Mon, Jan 2"), hour, minute)
@@ -166,6 +231,34 @@ func setAlarms(plan []time.Time, noSkipToday bool) {
 			}
 		}
 	}
+}
+
+func savePlan(p *Plan) error {
+	data, err := json.MarshalIndent(p, "", "  ")
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(configPath, data, 0644)
+}
+
+func loadPlan() (*Plan, error) {
+	data, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+	var p Plan
+	err = json.Unmarshal(data, &p)
+	return &p, err
+}
+
+func archivePlan(p *Plan) error {
+	files, err := ioutil.ReadDir(historyPath)
+	if err != nil {
+		return err
+	}
+	newFileName := fmt.Sprintf("plan-%d.json", len(files)+1)
+	newPath := filepath.Join(historyPath, newFileName)
+	return os.Rename(configPath, newPath)
 }
 
 const htmlTemplate = `
@@ -446,12 +539,12 @@ type TemplateData struct {
 	Progress     float64
 }
 
-func generateHTML(plan []time.Time, adjustment time.Duration, initialWakeTime, targetWakeTime time.Time) error {
+func generateHTML(p *Plan) error {
 	var schedule []ScheduleEntry
 	var chartLabels []string
 	var wakeUpData, bedtimeData, durationData []float64
 
-	for _, wakeTime := range plan {
+	for _, wakeTime := range p.Schedule {
 		bedtime := wakeTime.Add(-idealSleepDuration)
 		duration := wakeTime.Sub(bedtime)
 
@@ -483,16 +576,42 @@ func generateHTML(plan []time.Time, adjustment time.Duration, initialWakeTime, t
 		durationData = append(durationData, duration.Hours())
 	}
 
-	totalAdjustment := initialWakeTime.Sub(targetWakeTime)
-	currentAdjustment := initialWakeTime.Sub(plan[len(plan)-1])
+	now := time.Now()
+	var currentScheduledWakeTime time.Time
+	for _, wakeTime := range p.Schedule {
+		if !wakeTime.After(now) {
+			currentScheduledWakeTime = wakeTime
+		} else {
+			break
+		}
+	}
+
+	if currentScheduledWakeTime.IsZero() {
+		currentScheduledWakeTime = p.Schedule[0]
+	}
+
+	commonDate := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+	initialTime := time.Date(commonDate.Year(), commonDate.Month(), commonDate.Day(), p.InitialWakeTime.Hour(), p.InitialWakeTime.Minute(), 0, 0, time.UTC)
+	targetTime := time.Date(commonDate.Year(), commonDate.Month(), commonDate.Day(), p.TargetWakeTime.Hour(), p.TargetWakeTime.Minute(), 0, 0, time.UTC)
+	currentTime := time.Date(commonDate.Year(), commonDate.Month(), commonDate.Day(), currentScheduledWakeTime.Hour(), currentScheduledWakeTime.Minute(), 0, 0, time.UTC)
+
+	totalAdjustment := initialTime.Sub(targetTime)
+	adjustedSoFar := initialTime.Sub(currentTime)
+
 	progress := 0.0
 	if totalAdjustment > 0 {
-		progress = (float64(currentAdjustment) / float64(totalAdjustment)) * 100
+		progress = (float64(adjustedSoFar) / float64(totalAdjustment)) * 100
+	}
+	if progress < 0 {
+		progress = 0
+	}
+	if progress > 100 {
+		progress = 100
 	}
 
 	data := TemplateData{
-		DaysToTarget: len(plan),
-		Adjustment:   adjustment.String(),
+		DaysToTarget: len(p.Schedule),
+		Adjustment:   p.Adjustment.String(),
 		Schedule:     schedule,
 		ChartLabels:  chartLabels,
 		WakeUpData:   wakeUpData,
