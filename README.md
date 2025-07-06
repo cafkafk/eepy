@@ -35,6 +35,19 @@ eepy 10:00 --target 05:00
 
 `eepy` will then print a plan for you to follow.
 
+## Automatic Alarms with ADB
+
+For Android users, `eepy` can automatically set your daily wake-up alarms using the Android Debug Bridge (ADB).
+
+### Flags
+
+-   `--adb`: Enable setting alarms on a connected Android device.
+-   `--no-skip-today`: By default, `eepy` will not set an alarm for the first day of the plan (today). Use this flag to set an alarm for the current day.
+
+When you run `eepy` with the `--adb` flag, it will generate the sleep plan and then immediately attempt to set an alarm for each day of the plan (respecting the `--no-skip-today` flag). The alarms are set with a message indicating the date, like "Sleep Adjustment Wake Up: Sun, Jul 6".
+
+For maximum convenience, it is highly recommended to [set up ADB over Wi-Fi](https://developer.android.com/tools/adb#connect-to-a-device-over-wi-fi-android-11+). This allows `eepy` to set your alarms wirelessly without needing a physical connection to your device.
+
 ## Installation
 
 You can build `eepy` from source:
