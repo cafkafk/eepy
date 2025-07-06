@@ -40,5 +40,12 @@ pkgs.nixosTest {
     assert "Wake up at 06:15" in output
     assert "(Day 3):" in output
     assert "Wake up at 05:00" in output
-  '';
+
+    # Test with start date
+    machine.succeed("rm -f /root/.config/eepy/plan.json")
+    output = machine.succeed("eepy 08:00 --start-date 2025-01-01")
+    assert "Your sleep calibration plan:" in output
+    assert "Wed, Jan 1 (Day 1):" in output
+    assert "Wake up at 08:00" in output
+'';
 }

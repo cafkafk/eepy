@@ -61,7 +61,14 @@ func main() {
 	adb := pflag.Bool("adb", false, "Set alarm on Android device via ADB")
 	noSkipToday := pflag.Bool("no-skip-today", false, "Do not skip setting an alarm for today")
 	htmlOutput := pflag.Bool("html", false, "Generate an HTML visualization of the plan")
+	startDateStr := pflag.String("start-date", time.Now().Format("2006-01-02"), "The start date of the plan (YYYY-MM-DD)")
 	pflag.Parse()
+
+	startDate, err := time.Parse("2006-01-02", *startDateStr)
+	if err != nil {
+		fmt.Printf("Error parsing start-date: %v\n", err)
+		os.Exit(1)
+	}
 
 	existingPlan, err := loadPlan()
 
@@ -114,13 +121,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	schedule := generateSchedule(wakeTime, targetWakeTime, adjustment)
+	schedule := generateSchedule(wakeTime, targetWakeTime, adjustment, startDate)
 	newPlan := &Plan{
 		InitialWakeTime: wakeTime,
 		TargetWakeTime:  targetWakeTime,
 		Adjustment:      adjustment,
 		Schedule:        schedule,
-		StartDate:       time.Now(),
+		StartDate:       startDate,
 	}
 
 	if err := savePlan(newPlan); err != nil {
@@ -141,22 +148,20 @@ func main() {
 	}
 }
 
-func generateSchedule(wakeTime, targetWakeTime time.Time, adjustment time.Duration) []time.Time {
+func generateSchedule(wakeTime, targetWakeTime time.Time, adjustment time.Duration, startDate time.Time) []time.Time {
 	var schedule []time.Time
-	now := time.Now()
 	if !wakeTime.After(targetWakeTime) {
-		tomorrow := now.AddDate(0, 0, 1)
-		wakeTimeWithDate := time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), wakeTime.Hour(), wakeTime.Minute(), 0, 0, now.Location())
+		wakeTimeWithDate := time.Date(startDate.Year(), startDate.Month(), startDate.Day(), wakeTime.Hour(), wakeTime.Minute(), 0, 0, startDate.Location())
 		schedule = append(schedule, wakeTimeWithDate)
 		return schedule
 	}
 
 	currentWakeTime := wakeTime
-	day := 1
+	day := 0
 
 	for {
-		dayOfPlan := now.AddDate(0, 0, day-1)
-		wakeTimeWithDate := time.Date(dayOfPlan.Year(), dayOfPlan.Month(), dayOfPlan.Day(), currentWakeTime.Hour(), currentWakeTime.Minute(), 0, 0, now.Location())
+		dayOfPlan := startDate.AddDate(0, 0, day)
+		wakeTimeWithDate := time.Date(dayOfPlan.Year(), dayOfPlan.Month(), dayOfPlan.Day(), currentWakeTime.Hour(), currentWakeTime.Minute(), 0, 0, startDate.Location())
 		schedule = append(schedule, wakeTimeWithDate)
 
 		if !currentWakeTime.After(targetWakeTime) {
