@@ -116,16 +116,17 @@ func TestGeneratePlanWithDifferentAdjustment(t *testing.T) {
 
 	// Check the output
 	output := buf.String()
+	now := time.Now()
 	expectedLines := []string{
-		"Day 1:",
+		now.Format("Mon, Jan 2") + " (Day 1):",
 		"  - Wake up at 10:00",
-		"Day 2:",
+		now.AddDate(0, 0, 1).Format("Mon, Jan 2") + " (Day 2):",
 		"  - Wake up at 09:30",
-		"Day 3:",
+		now.AddDate(0, 0, 2).Format("Mon, Jan 2") + " (Day 3):",
 		"  - Wake up at 09:00",
-		"Day 4:",
+		now.AddDate(0, 0, 3).Format("Mon, Jan 2") + " (Day 4):",
 		"  - Wake up at 08:30",
-		"Day 5:",
+		now.AddDate(0, 0, 4).Format("Mon, Jan 2") + " (Day 5):",
 		"  - Wake up at 08:00",
 	}
 
@@ -156,12 +157,13 @@ func TestGeneratePlanWithComplexAdjustment(t *testing.T) {
 
 	// Check the output
 	output := buf.String()
+	now := time.Now()
 	expectedLines := []string{
-		"Day 1:",
+		now.Format("Mon, Jan 2") + " (Day 1):",
 		"  - Wake up at 10:00",
-		"Day 2:",
+		now.AddDate(0, 0, 1).Format("Mon, Jan 2") + " (Day 2):",
 		"  - Wake up at 06:15",
-		"Day 3:",
+		now.AddDate(0, 0, 2).Format("Mon, Jan 2") + " (Day 3):",
 		"  - Wake up at 05:00",
 	}
 
