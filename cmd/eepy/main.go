@@ -58,7 +58,7 @@ func main() {
 
 	targetWakeTimeStr := pflag.String("target", "05:00", "Your target wake up time (HH:MM)")
 	adjustmentStr := pflag.String("adjustment", "1h30m", "Adjustment per day")
-	adb := pflag.Bool("adb", false, "Set alarm on Android device via ADB")
+	adb := pflag.BoolP("adb", "a", false, "Set alarm on Android device via ADB. Requires a connected device.")
 	noSkipToday := pflag.Bool("no-skip-today", false, "Do not skip setting an alarm for today")
 	htmlOutput := pflag.Bool("html", false, "Generate an HTML visualization of the plan")
 	startDateStr := pflag.String("start-date", time.Now().Format("2006-01-02"), "The start date of the plan (YYYY-MM-DD)")
@@ -84,6 +84,9 @@ func main() {
 			if err := generateHTML(existingPlan); err != nil {
 				fmt.Printf("Error generating HTML: %v\n", err)
 			}
+		}
+		if *adb {
+			setAlarms(existingPlan.Schedule, *noSkipToday)
 		}
 		os.Exit(0)
 	}
@@ -218,6 +221,7 @@ func setAlarms(plan []time.Time, noSkipToday bool) {
 		args := []string{
 			"shell", "am", "start",
 			"-a", "android.intent.action.SET_ALARM",
+			"-f", "0x10000000",
 			"--ei", "android.intent.extra.alarm.HOUR", strconv.Itoa(hour),
 			"--ei", "android.intent.extra.alarm.MINUTES", strconv.Itoa(minute),
 			"--eia", "android.intent.extra.alarm.DAYS", strconv.Itoa(androidDay),
@@ -235,8 +239,10 @@ func setAlarms(plan []time.Time, noSkipToday bool) {
 				fmt.Printf("Output: %s\n", string(output))
 			}
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
+
 
 func savePlan(p *Plan) error {
 	data, err := json.MarshalIndent(p, "", "  ")
