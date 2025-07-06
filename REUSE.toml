@@ -30,6 +30,12 @@ precedence = "override"
 SPDX-FileCopyrightText = "2025 Christina Sørensen"
 SPDX-License-Identifier = "EUPL-1.2"
 
+[[annotations]]
+path = "docs/*"
+precedence = "override"
+SPDX-FileCopyrightText = "2025 Christina Sørensen"
+SPDX-License-Identifier = "EUPL-1.2"
+
 # pre-commit-hooks.nix cause these to appear in commit check:(
 
 [[annotations]]
