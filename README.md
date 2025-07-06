@@ -4,7 +4,13 @@ SPDX-FileCopyrightText: 2025 Christina Sørensen
 SPDX-License-Identifier: EUPL-1.2
 -->
 
+<div align="center">
+
 # eepy
+
+![eepy demo](docs/eepy_demo_picture.jpg)
+
+</div>
 
 `eepy` is a simple command-line tool to help you calibrate your sleep schedule.
 
@@ -24,16 +30,26 @@ eepy [your-current-wake-time] [flags]
 
 -   `--target`: Your target wake-up time in HH:MM format (default: "05:00").
 -   `--adjustment`: The amount of time to adjust your wake-up time by each day (default: "1h30m").
+-   `--start-date`: The start date of the plan in YYYY-MM-DD format (default: today).
+-   `--html`: Generate an HTML visualization of the plan.
 
 ## Example
 
 If you currently wake up at 10:00 and want to start waking up at 05:00, you can run:
 
 ```bash
-eepy 10:00 --target 05:00
+eepy 10:00 --target 05:00 --start-date 2025-07-13
 ```
 
-`eepy` will then print a plan for you to follow.
+`eepy` will then print a plan for you to follow, starting on July 13, 2025.
+
+## HTML Output
+
+When you run `eepy` with the `--html` flag, it will generate an HTML file containing a visual representation of your sleep plan. This file is saved to a temporary directory and the path to the file is printed to the console.
+
+## Plan Persistence
+
+`eepy` automatically saves your generated sleep plan. If a plan already exists for the specified start date, `eepy` will load the existing plan instead of generating a new one. This ensures that your progress is not lost.
 
 ## Automatic Alarms with ADB
 
